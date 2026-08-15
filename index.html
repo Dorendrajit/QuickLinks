@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Family Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:       #0f1f3d;
+      --navy-mid:   #162847;
+      --navy-soft:  #1e3560;
+      --gold:       #c8a96e;
+      --gold-light: #e8d4a8;
+      --cream:      #f7f4ef;
+      --white:      #ffffff;
+      --muted:      #7a8ba8;
+      --card-bg:    #ffffff;
+      --border:     #e2ddd6;
+      --shadow:     0 4px 24px rgba(15,31,61,0.10);
+      --shadow-hover: 0 12px 40px rgba(15,31,61,0.18);
+      --radius:     14px;
+      --danger:     #c0392b;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--cream);
+      color: var(--navy);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 100%);
+      padding: 0 2rem;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 20px rgba(15,31,61,0.3);
+    }
+    .header-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 70px;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-monogram {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px; color: var(--navy); flex-shrink: 0;
+    }
+    .brand-text h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.25rem; color: var(--white); letter-spacing: 0.01em; line-height: 1.1;
+    }
+    .brand-text span {
+      font-size: 0.72rem; color: var(--gold-light);
+      letter-spacing: 0.08em; text-transform: uppercase; font-weight: 300;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .header-badge {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(200,169,110,0.3);
+      border-radius: 20px; padding: 6px 14px;
+      font-size: 0.75rem; color: var(--gold-light); letter-spacing: 0.04em;
+    }
+    .sync-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.72rem; color: var(--gold-light);
+      opacity: 0.8;
+    }
+    .sync-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
+      animation: pulse 2s infinite;
+    }
+    .sync-dot.loading { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+    .sync-dot.error   { background: #f87171; box-shadow: 0 0 6px #f87171; animation: none; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 60%, #2a4a7f 100%);
+      padding: 56px 2rem 48px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(200,169,110,0.12), transparent);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 14px; font-weight: 500;
+    }
+    .hero h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2rem, 5vw, 3rem); color: var(--white);
+      line-height: 1.1; margin-bottom: 14px;
+    }
+    .hero h2 em { color: var(--gold-light); font-style: italic; }
+    .hero p { color: rgba(255,255,255,0.6); font-size: 0.95rem; max-width: 420px; margin: 0 auto; font-weight: 300; }
+
+    /* ── TABS ── */
+    .tabs-bar {
+      background: var(--white); border-bottom: 1px solid var(--border);
+      padding: 0 2rem; position: sticky; top: 70px; z-index: 90;
+    }
+    .tabs-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; gap: 0; overflow-x: auto; scrollbar-width: none;
+    }
+    .tabs-inner::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      background: none; border: none; cursor: pointer;
+      padding: 16px 22px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+      color: var(--muted); border-bottom: 2.5px solid transparent;
+      white-space: nowrap; transition: color 0.2s, border-color 0.2s;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .tab-btn:hover { color: var(--navy); }
+    .tab-btn.active { color: var(--navy); border-bottom-color: var(--gold); }
+    .tab-count {
+      background: var(--cream); border-radius: 20px;
+      padding: 1px 7px; font-size: 0.7rem; color: var(--muted);
+    }
+    .tab-btn.active .tab-count { background: rgba(200,169,110,0.15); color: var(--gold); }
+
+    /* ── MAIN ── */
+    main { max-width: 1100px; margin: 0 auto; padding: 36px 2rem 60px; }
+    .section-header { margin-bottom: 24px; display: flex; align-items: flex-end; justify-content: space-between; }
+    .section-header h3 { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--navy); }
+    .section-header p { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── GRID ── */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 22px; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      box-shadow: var(--shadow); transition: transform 0.22s ease, box-shadow 0.22s ease;
+      display: flex; flex-direction: column;
+      animation: fadeUp 0.35s ease both;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+    .card-thumb {
+      width: 100%; height: 160px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .card-thumb-bg { position: absolute; inset: 0; background: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 100%); }
+    .card[data-cat="health"]    .card-thumb-bg { background: linear-gradient(135deg, #0f3d2e, #1a6645); }
+    .card[data-cat="id"]        .card-thumb-bg { background: linear-gradient(135deg, #1a2a5e, #2e4fa3); }
+    .card[data-cat="finance"]   .card-thumb-bg { background: linear-gradient(135deg, #3d2a0f, #a0641a); }
+    .card[data-cat="property"]  .card-thumb-bg { background: linear-gradient(135deg, #2a0f3d, #7a1aa0); }
+    .card[data-cat="travel"]    .card-thumb-bg { background: linear-gradient(135deg, #0f3040, #1a7080); }
+    .card[data-cat="other"]     .card-thumb-bg { background: linear-gradient(135deg, #3a3a3a, #606060); }
+
+    .card-thumb img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; z-index: 2;
+    }
+    .card-thumb-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 50%;
+      background: linear-gradient(transparent, rgba(15,31,61,0.4)); z-index: 3;
+    }
+    .card-cat-pill {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(255,255,255,0.18); backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.25); border-radius: 20px;
+      padding: 3px 10px; font-size: 0.65rem; color: #fff;
+      font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; z-index: 4;
+    }
+    .card-thumb-emoji { position: relative; z-index: 2; font-size: 3.5rem; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3)); }
+
+    .card-body { padding: 18px 20px 20px; display: flex; flex-direction: column; flex: 1; }
+    .card-title { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: var(--navy); margin-bottom: 6px; line-height: 1.25; }
+    .card-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.55; flex: 1; margin-bottom: 16px; }
+    .card-actions { display: flex; gap: 8px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px; border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; text-decoration: none; border: none;
+      transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
+      letter-spacing: 0.02em;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--navy); color: #fff; flex: 1; justify-content: center; }
+    .btn-primary:hover { background: var(--navy-soft); box-shadow: 0 3px 12px rgba(15,31,61,0.3); }
+    .btn-secondary { background: var(--cream); color: var(--navy); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--gold-light); border-color: var(--gold); }
+    .btn-danger { background: #fff0f0; color: var(--danger); border: 1px solid #ffd5d5; }
+    .btn-danger:hover { background: #ffe0e0; }
+
+    /* ── SKELETON ── */
+    .skeleton-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+    }
+    .skeleton-thumb { width: 100%; height: 160px; background: #e8e4dc; animation: shimmer 1.4s infinite; }
+    .skeleton-body { padding: 18px 20px 20px; }
+    .skeleton-line {
+      height: 14px; border-radius: 6px; background: #e8e4dc;
+      margin-bottom: 10px; animation: shimmer 1.4s infinite;
+    }
+    .skeleton-line.short { width: 55%; }
+    .skeleton-line.medium { width: 80%; }
+    .skeleton-line.full { width: 100%; }
+    @keyframes shimmer {
+      0%   { opacity: 1; }
+      50%  { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    /* ── EMPTY / ERROR STATE ── */
+    .empty-state { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--navy); color: #fff;
+      padding: 10px 22px; border-radius: 24px;
+      font-size: 0.82rem; font-weight: 500;
+      box-shadow: 0 8px 24px rgba(15,31,61,0.35);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 300; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.success { background: #166534; }
+    #toast.error   { background: #991b1b; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(10,20,40,0.6); backdrop-filter: blur(4px);
+      z-index: 200; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--white); border-radius: 18px;
+      width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(15,31,61,0.35);
+    }
+    .modal-header {
+      padding: 24px 28px 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h3 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--navy); }
+    .modal-close {
+      background: var(--cream); border: none; cursor: pointer;
+      width: 32px; height: 32px; border-radius: 8px;
+      font-size: 1.1rem; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-close:hover { background: var(--border); }
+    .modal-body { padding: 20px 28px 28px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--navy); margin-bottom: 6px; letter-spacing: 0.03em; }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%; padding: 10px 13px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.85rem; color: var(--navy);
+      background: var(--cream); transition: border-color 0.18s; outline: none;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus { border-color: var(--gold); background: #fff; }
+    .form-group textarea { resize: vertical; min-height: 72px; }
+    .form-hint { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-footer { display: flex; gap: 10px; justify-content: space-between; margin-top: 20px; align-items: center; }
+    .modal-footer-right { display: flex; gap: 10px; }
+
+    /* ── FAB ── */
+    .fab {
+      position: fixed; bottom: 32px; right: 32px;
+      width: 54px; height: 54px;
+      background: linear-gradient(135deg, var(--navy), var(--navy-soft));
+      color: #fff; border: none; border-radius: 50%;
+      font-size: 1.5rem; cursor: pointer;
+      box-shadow: 0 6px 24px rgba(15,31,61,0.4);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.18s, box-shadow 0.18s; z-index: 150;
+    }
+    .fab:hover { transform: scale(1.08); box-shadow: 0 10px 32px rgba(15,31,61,0.5); }
+
+    /* ── CONFIRM DIALOG ── */
+    .confirm-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(10,20,40,0.7); backdrop-filter: blur(4px);
+      z-index: 250; align-items: center; justify-content: center; padding: 20px;
+    }
+    .confirm-overlay.open { display: flex; }
+    .confirm-box {
+      background: var(--white); border-radius: 16px; padding: 28px 32px;
+      max-width: 380px; width: 100%; text-align: center;
+      box-shadow: 0 24px 64px rgba(15,31,61,0.35);
+    }
+    .confirm-box .confirm-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .confirm-box h4 { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--navy); margin-bottom: 8px; }
+    .confirm-box p { font-size: 0.85rem; color: var(--muted); margin-bottom: 20px; }
+    .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .hero { padding: 40px 1.5rem 36px; }
+      main { padding: 24px 1rem 48px; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .header-badge, .sync-status { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-monogram">F</div>
+      <div class="brand-text">
+        <h1>Family Hub</h1>
+        <span>Important Documents</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="sync-status">
+        <div class="sync-dot loading" id="syncDot"></div>
+        <span id="syncLabel">Connecting…</span>
+      </div>
+      <div class="header-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        Supabase + Drive
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Private · Organised · Always accessible</div>
+  <h2>All your <em>important documents</em><br>in one place</h2>
+  <p>Your family's key files, health cards, ID documents, and more — linked directly from Google Drive.</p>
+</div>
+
+<!-- TABS -->
+<div class="tabs-bar">
+  <div class="tabs-inner" id="tabsContainer"></div>
+</div>
+
+<!-- MAIN -->
+<main>
+  <div class="section-header">
+    <div>
+      <h3 id="sectionTitle">All Documents</h3>
+      <p id="sectionDesc">Loading your documents…</p>
+    </div>
+  </div>
+  <div class="cards-grid" id="cardsGrid">
+    <!-- skeletons -->
+    ${Array(6).fill(`
+    <div class="skeleton-card">
+      <div class="skeleton-thumb"></div>
+      <div class="skeleton-body">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line full"></div>
+        <div class="skeleton-line medium"></div>
+      </div>
+    </div>`).join('')}
+  </div>
+</main>
+
+<!-- FAB -->
+<button class="fab" id="fabAdd" title="Add new card">＋</button>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add Document</h3>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId" value="" />
+      <div class="form-row">
+        <div class="form-group">
+          <label>Card Title *</label>
+          <input type="text" id="fTitle" placeholder="e.g. Aadhaar Card" />
+        </div>
+        <div class="form-group">
+          <label>Category *</label>
+          <select id="fCategory">
+            <option value="health">🏥 Health</option>
+            <option value="id">🪪 ID Documents</option>
+            <option value="finance">💰 Finance</option>
+            <option value="property">🏠 Property</option>
+            <option value="travel">✈️ Travel</option>
+            <option value="other">📁 Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="fDesc" placeholder="Brief description of this document…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Google Drive Link (Open / View) *</label>
+        <input type="url" id="fDriveLink" placeholder="https://drive.google.com/file/d/…" />
+        <div class="form-hint">Share the file or folder from Google Drive and paste the link here.</div>
+      </div>
+      <div class="form-group">
+        <label>Google Drive Download Link <span style="font-weight:300;color:var(--muted)">(optional)</span></label>
+        <input type="url" id="fDownloadLink" placeholder="https://drive.google.com/uc?export=download&id=…" />
+        <div class="form-hint">Leave blank to reuse the view link for downloads.</div>
+      </div>
+      <div class="form-group">
+        <label>Thumbnail Image URL <span style="font-weight:300;color:var(--muted)">(optional)</span></label>
+        <input type="url" id="fImage" placeholder="https://… or leave blank for emoji" />
+      </div>
+      <div class="form-group">
+        <label>Emoji Icon</label>
+        <input type="text" id="fEmoji" placeholder="📄" maxlength="4" style="max-width:80px" />
+      </div>
+      <div class="modal-footer">
+        <div>
+          <button class="btn btn-danger" id="btnDelete" style="display:none">🗑 Delete</button>
+        </div>
+        <div class="modal-footer-right">
+          <button class="btn btn-secondary" id="modalCancel">Cancel</button>
+          <button class="btn btn-primary" id="modalSave">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save Card
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE DIALOG -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <h4>Delete this card?</h4>
+    <p>This will permanently remove the card from Supabase. The Google Drive file itself won't be affected.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" id="confirmCancel">Keep it</button>
+      <button class="btn btn-danger" id="confirmDelete">Yes, delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────
+//  SUPABASE CONFIG  ← your credentials are wired in here
+// ─────────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://dtupnrxeglmlmmldonhi.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0dXBucnhlZ2xtbG1tbGRvbmhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MDY4OTIsImV4cCI6MjEwMjM4Mjg5Mn0.jXDF9lF7mrHg0v7mKAYqaEeGAyLkVzYlkTi04rDS_A0';
+
+// ─────────────────────────────────────────────────────────────────────
+//  SUPABASE REST HELPERS
+// ─────────────────────────────────────────────────────────────────────
+const headers = {
+  'apikey': SUPABASE_ANON_KEY,
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation',
+};
+
+async function dbFetch(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { ...headers, ...(options.headers || {}) },
+    ...options,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `HTTP ${res.status}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+const api = {
+  getCards: () => dbFetch('cards?select=*&order=sort_order.asc,created_at.asc'),
+  insertCard: (data) => dbFetch('cards', { method: 'POST', body: JSON.stringify(data) }),
+  updateCard: (id, data) => dbFetch(`cards?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteCard: (id) => dbFetch(`cards?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': '' } }),
+};
+
+// ─────────────────────────────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────────────────────────────
+let cards = [];
+let activeTab = 'all';
+let pendingDeleteId = null;
+
+const CATEGORIES = [
+  { id: 'all',      label: 'All',      icon: '🗂️' },
+  { id: 'health',   label: 'Health',   icon: '🏥' },
+  { id: 'id',       label: 'ID Docs',  icon: '🪪' },
+  { id: 'finance',  label: 'Finance',  icon: '💰' },
+  { id: 'property', label: 'Property', icon: '🏠' },
+  { id: 'travel',   label: 'Travel',   icon: '✈️' },
+  { id: 'other',    label: 'Other',    icon: '📁' },
+];
+const CAT_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.id, c.label]));
+
+// ─────────────────────────────────────────────────────────────────────
+//  SYNC STATUS
+// ─────────────────────────────────────────────────────────────────────
+function setSyncStatus(state) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  if (state === 'ok')      { dot.className = 'sync-dot';         lbl.textContent = 'Live'; }
+  if (state === 'loading') { dot.className = 'sync-dot loading'; lbl.textContent = 'Syncing…'; }
+  if (state === 'error')   { dot.className = 'sync-dot error';   lbl.textContent = 'Offline'; }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3000);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  RENDER
+// ─────────────────────────────────────────────────────────────────────
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderTabs() {
+  const c = document.getElementById('tabsContainer');
+  c.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const count = cat.id === 'all' ? cards.length : cards.filter(x => x.category === cat.id).length;
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (activeTab === cat.id ? ' active' : '');
+    btn.innerHTML = `${cat.icon} ${cat.label} <span class="tab-count">${count}</span>`;
+    btn.addEventListener('click', () => { activeTab = cat.id; renderAll(); });
+    c.appendChild(btn);
+  });
+}
+
+function renderCards() {
+  const grid = document.getElementById('cardsGrid');
+  const filtered = activeTab === 'all' ? cards : cards.filter(c => c.category === activeTab);
+  const cat = CATEGORIES.find(c => c.id === activeTab);
+
+  document.getElementById('sectionTitle').textContent =
+    activeTab === 'all' ? 'All Documents' : (cat.icon + ' ' + cat.label);
+  document.getElementById('sectionDesc').textContent =
+    filtered.length ? `${filtered.length} document${filtered.length !== 1 ? 's' : ''}` : 'No documents in this category yet.';
+
+  grid.innerHTML = '';
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📂</div><p>Nothing here yet.<br>Click <strong>＋</strong> to add a card.</p></div>`;
+    return;
+  }
+
+  filtered.forEach(card => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.cat = card.category || 'other';   // guard against null
+    el.innerHTML = `
+      <div class="card-thumb">
+        <div class="card-thumb-bg"></div>
+        ${card.image_url ? `<img src="${esc(card.image_url)}" alt="" loading="lazy" />` : ''}
+        <div class="card-thumb-overlay"></div>
+        <span class="card-cat-pill">${esc(CAT_LABEL[card.category] || card.category)}</span>
+        ${!card.image_url ? `<span class="card-thumb-emoji">${card.emoji || '📄'}</span>` : ''}
+      </div>
+      <div class="card-body">
+        <div class="card-title">${esc(card.title)}</div>
+        <div class="card-desc">${esc(card.description)}</div>
+        <div class="card-actions">
+          <a href="${esc(card.drive_link)}" target="_blank" rel="noopener" class="btn btn-primary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Open
+          </a>
+          <a href="${esc(card.download_link || card.drive_link)}" target="_blank" rel="noopener" class="btn btn-secondary" title="Download">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </a>
+          <button class="btn btn-secondary" title="Edit" onclick="openEdit('${card.id}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>
+      </div>`;
+    grid.appendChild(el);
+  });
+}
+
+function renderAll() { renderTabs(); renderCards(); }
+
+// ─────────────────────────────────────────────────────────────────────
+//  LOAD FROM SUPABASE
+// ─────────────────────────────────────────────────────────────────────
+async function loadCards() {
+  setSyncStatus('loading');
+  try {
+    const result = await api.getCards();
+    // Supabase returns an array; guard against unexpected shapes
+    cards = Array.isArray(result) ? result : [];
+    // Sanitise: ensure every card has a category
+    cards = cards.map(c => ({ ...c, category: c.category || 'other' }));
+    setSyncStatus('ok');
+    renderAll();
+  } catch (e) {
+    console.error('[FamilyHub] Supabase error:', e);
+    setSyncStatus('error');
+    document.getElementById('cardsGrid').innerHTML =
+      `<div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <p><strong>Could not connect to Supabase.</strong><br/>
+        <small style="color:#999">${esc(e.message)}</small><br/><br/>
+        <small>Check the browser console (F12) for details.</small></p>
+      </div>`;
+    document.getElementById('sectionDesc').textContent = 'Connection error';
+    showToast('Could not load cards — check console (F12)', 'error');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  MODAL
+// ─────────────────────────────────────────────────────────────────────
+function openModal(card = null) {
+  document.getElementById('modalTitle').textContent = card ? 'Edit Document' : 'Add Document';
+  document.getElementById('editId').value = card ? card.id : '';
+  document.getElementById('fTitle').value = card?.title || '';
+  document.getElementById('fCategory').value = card?.category || 'health';
+  document.getElementById('fDesc').value = card?.description || '';
+  document.getElementById('fDriveLink').value = card?.drive_link || '';
+  document.getElementById('fDownloadLink').value = card?.download_link || '';
+  document.getElementById('fImage').value = card?.image_url || '';
+  document.getElementById('fEmoji').value = card?.emoji || '📄';
+  document.getElementById('btnDelete').style.display = card ? 'inline-flex' : 'none';
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('fTitle').focus(), 80);
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+function openEdit(id) {
+  const card = cards.find(c => c.id === id);
+  if (card) openModal(card);
+}
+
+async function saveModal() {
+  const title     = document.getElementById('fTitle').value.trim();
+  const driveLink = document.getElementById('fDriveLink').value.trim();
+  if (!title)     { showToast('Please enter a title', 'error'); return; }
+  if (!driveLink) { showToast('Please enter a Google Drive link', 'error'); return; }
+
+  const payload = {
+    title,
+    category:      document.getElementById('fCategory').value || 'other',
+    description:   document.getElementById('fDesc').value.trim(),
+    drive_link:    driveLink,
+    download_link: document.getElementById('fDownloadLink').value.trim() || null,
+    image_url:     document.getElementById('fImage').value.trim() || null,
+    emoji:         document.getElementById('fEmoji').value.trim() || '📄',
+  };
+
+  const id = document.getElementById('editId').value;
+  const saveBtn = document.getElementById('modalSave');
+  saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+
+  setSyncStatus('loading');
+  try {
+    if (id) {
+      const updated = await api.updateCard(id, payload);
+      const idx = cards.findIndex(c => c.id === id);
+      if (idx !== -1) cards[idx] = updated[0];
+      showToast('Card updated ✓', 'success');
+    } else {
+      const created = await api.insertCard(payload);
+      cards.push(created[0]);
+      showToast('Card added ✓', 'success');
+    }
+    setSyncStatus('ok');
+    closeModal();
+    renderAll();
+  } catch (e) {
+    setSyncStatus('error');
+    showToast('Save failed: ' + e.message, 'error');
+  } finally {
+    saveBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Card`;
+    saveBtn.disabled = false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  DELETE
+// ─────────────────────────────────────────────────────────────────────
+function openConfirmDelete() {
+  pendingDeleteId = document.getElementById('editId').value;
+  if (!pendingDeleteId) return;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+  document.getElementById('confirmOverlay').classList.remove('open');
+  setSyncStatus('loading');
+  try {
+    await api.deleteCard(pendingDeleteId);
+    cards = cards.filter(c => c.id !== pendingDeleteId);
+    setSyncStatus('ok');
+    closeModal();
+    renderAll();
+    showToast('Card deleted', 'success');
+  } catch (e) {
+    setSyncStatus('error');
+    showToast('Delete failed: ' + e.message, 'error');
+  }
+  pendingDeleteId = null;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  EVENTS
+// ─────────────────────────────────────────────────────────────────────
+document.getElementById('fabAdd').addEventListener('click', () => openModal());
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+document.getElementById('modalSave').addEventListener('click', saveModal);
+document.getElementById('btnDelete').addEventListener('click', openConfirmDelete);
+document.getElementById('confirmCancel').addEventListener('click', () => {
+  document.getElementById('confirmOverlay').classList.remove('open');
+});
+document.getElementById('confirmDelete').addEventListener('click', confirmDelete);
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); document.getElementById('confirmOverlay').classList.remove('open'); }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────────────────────
+loadCards();
+</script>
+</body>
+</html>
