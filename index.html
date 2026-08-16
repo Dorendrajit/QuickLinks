@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -327,6 +328,74 @@
       .form-row { grid-template-columns: 1fr; }
       .header-badge, .sync-status { display: none; }
     }
+
+    /* ── AUTH ── */
+    .login-btn {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(200,169,110,0.3);
+      border-radius: 20px; padding: 6px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.75rem; color: var(--gold-light);
+      cursor: pointer; transition: background 0.18s;
+      letter-spacing: 0.04em;
+    }
+    .login-btn:hover { background: rgba(255,255,255,0.18); }
+    .login-btn.signed-in { color: #4ade80; border-color: rgba(74,222,128,0.3); }
+
+    /* login modal */
+    .auth-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(10,20,40,0.75); backdrop-filter: blur(6px);
+      z-index: 400; align-items: center; justify-content: center; padding: 20px;
+    }
+    .auth-overlay.open { display: flex; }
+    .auth-box {
+      background: var(--white); border-radius: 20px;
+      width: 100%; max-width: 400px;
+      box-shadow: 0 24px 64px rgba(15,31,61,0.4);
+      overflow: hidden;
+    }
+    .auth-header {
+      background: linear-gradient(135deg, var(--navy), var(--navy-soft));
+      padding: 32px 32px 24px; text-align: center;
+    }
+    .auth-header .auth-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin: 0 auto 14px;
+    }
+    .auth-header h3 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.3rem; color: var(--white); margin-bottom: 4px;
+    }
+    .auth-header p { font-size: 0.78rem; color: rgba(255,255,255,0.5); }
+    .auth-body { padding: 28px 32px 32px; }
+    .auth-body .form-group { margin-bottom: 16px; }
+    .auth-error {
+      background: #fff0f0; border: 1px solid #ffd5d5;
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 0.8rem; color: var(--danger);
+      margin-bottom: 16px; display: none;
+    }
+    .auth-error.show { display: block; }
+    .btn-auth {
+      width: 100%; padding: 12px;
+      background: var(--navy); color: #fff;
+      border: none; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; transition: background 0.18s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-auth:hover { background: var(--navy-soft); }
+    .btn-auth:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* hide admin controls when logged out */
+    .admin-only { display: none !important; }
+    .admin-visible .admin-only { display: inline-flex !important; }
+    .fab.admin-only { display: none !important; }
+    .admin-visible .fab.admin-only { display: flex !important; }
   </style>
 </head>
 <body>
@@ -341,7 +410,8 @@
         <span>Important Documents</span>
       </div>
     </div>
-    <div class="header-right">
+    <div class="header-right" id="headerRight">
+      <button class="login-btn" id="loginBtn" onclick="openAuthModal()">🔐 Admin</button>
       <div class="sync-status">
         <div class="sync-dot loading" id="syncDot"></div>
         <span id="syncLabel">Connecting…</span>
@@ -392,7 +462,7 @@
 </main>
 
 <!-- FAB -->
-<button class="fab" id="fabAdd" title="Add new card">＋</button>
+<button class="fab admin-only" id="fabAdd" title="Add new card">＋</button>
 
 <!-- TOAST -->
 <div id="toast"></div>
@@ -484,32 +554,218 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // ─────────────────────────────────────────────────────────────────────
 //  SUPABASE REST HELPERS
 // ─────────────────────────────────────────────────────────────────────
-const headers = {
-  'apikey': SUPABASE_ANON_KEY,
-  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=representation',
-};
+// Always build headers fresh so the latest token is used on every call
+function getHeaders(extra = {}) {
+  const token = getStoredToken() || SUPABASE_ANON_KEY;
+  const base = {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+  };
+  // merge extra but never allow apikey or Authorization to be blanked out
+  const merged = { ...base, ...extra };
+  if (!merged['apikey'])       merged['apikey'] = SUPABASE_ANON_KEY;
+  if (!merged['Authorization']) merged['Authorization'] = `Bearer ${token}`;
+  return merged;
+}
 
 async function dbFetch(path, options = {}) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: { ...headers, ...(options.headers || {}) },
-    ...options,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `HTTP ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
+  return dbFetchWithRefresh(path, options);
 }
 
 const api = {
   getCards: () => dbFetch('cards?select=*&order=sort_order.asc,created_at.asc'),
   insertCard: (data) => dbFetch('cards', { method: 'POST', body: JSON.stringify(data) }),
   updateCard: (id, data) => dbFetch(`cards?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteCard: (id) => dbFetch(`cards?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': '' } }),
+  deleteCard: (id) => dbFetch(`cards?id=eq.${id}`, { method: 'DELETE' }),
 };
+
+
+// ─────────────────────────────────────────────────────────────────────
+//  AUTH
+// ─────────────────────────────────────────────────────────────────────
+let currentUser = null;
+
+// Storage key for tokens
+const AUTH_KEY = `sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`;
+
+function getStoredSession() {
+  try {
+    const raw = localStorage.getItem(AUTH_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+function getStoredToken() {
+  return getStoredSession()?.access_token || '';
+}
+
+function saveSession(data) {
+  localStorage.setItem(AUTH_KEY, JSON.stringify({
+    access_token:  data.access_token,
+    refresh_token: data.refresh_token,
+  }));
+}
+
+function clearSession() {
+  localStorage.removeItem(AUTH_KEY);
+}
+
+// Refresh the access token using the refresh token
+async function refreshSession() {
+  const session = getStoredSession();
+  if (!session?.refresh_token) return false;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: session.refresh_token }),
+    });
+    if (!res.ok) { clearSession(); return false; }
+    const data = await res.json();
+    saveSession(data);
+    return true;
+  } catch(e) { return false; }
+}
+
+async function checkSession() {
+  const token = getStoredToken();
+  if (!token) { setUser(null); return; }
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const user = await res.json();
+      if (user?.email) { setUser(user); return; }
+    }
+    // Token might be expired — try refreshing
+    if (res.status === 401) {
+      const refreshed = await refreshSession();
+      if (refreshed) {
+        // Re-fetch user with new token
+        const res2 = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${getStoredToken()}` }
+        });
+        if (res2.ok) {
+          const user2 = await res2.json();
+          if (user2?.email) { setUser(user2); return; }
+        }
+      }
+    }
+  } catch(e) {}
+  setUser(null);
+}
+
+// Intercept expired token errors in dbFetch and auto-refresh
+async function dbFetchWithRefresh(path, options = {}) {
+  let res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: getHeaders(options.headers || {}),
+  });
+  // If 401, try refreshing token once then retry
+  if (res.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+        ...options,
+        headers: getHeaders(options.headers || {}),
+      });
+    }
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.error_description || err.hint || `HTTP ${res.status}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+async function doLogin() {
+  const email    = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl    = document.getElementById('authError');
+  const btn      = document.getElementById('authSubmit');
+
+  errEl.className = 'auth-error';
+  if (!email || !password) {
+    errEl.textContent = 'Please enter your email and password.';
+    errEl.className = 'auth-error show'; return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = 'Signing in…';
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.msg || 'Login failed');
+
+    // Store tokens
+    saveSession(data);
+
+
+    setUser({ email: data.user?.email });
+    closeAuthModal();
+    showToast('Signed in as ' + data.user?.email, 'success');
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.className = 'auth-error show';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In`;
+  }
+}
+
+async function doLogout() {
+  try {
+    await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+  } catch(e) {}
+  clearSession();
+  setUser(null);
+  showToast('Signed out');
+}
+
+function setUser(user) {
+  currentUser = user;
+  const btn  = document.getElementById('loginBtn');
+  const body = document.body;
+  if (user) {
+    btn.textContent = '✓ ' + user.email.split('@')[0];
+    btn.className = 'login-btn signed-in';
+    btn.onclick = doLogout;
+    body.classList.add('admin-visible');
+  } else {
+    btn.textContent = '🔐 Admin';
+    btn.className = 'login-btn';
+    btn.onclick = openAuthModal;
+    body.classList.remove('admin-visible');
+  }
+}
+
+function openAuthModal() {
+  document.getElementById('authOverlay').classList.add('open');
+  document.getElementById('authError').className = 'auth-error';
+  document.getElementById('authEmail').value = '';
+  document.getElementById('authPassword').value = '';
+  setTimeout(() => document.getElementById('authEmail').focus(), 80);
+}
+function closeAuthModal() {
+  document.getElementById('authOverlay').classList.remove('open');
+}
+
+// Close auth modal on overlay click or Escape
+document.addEventListener('click', e => {
+  if (e.target === document.getElementById('authOverlay')) closeAuthModal();
+});
 
 // ─────────────────────────────────────────────────────────────────────
 //  STATE
@@ -613,7 +869,7 @@ function renderCards() {
           <a href="${esc(card.download_link || card.drive_link)}" target="_blank" rel="noopener" class="btn btn-secondary" title="Download">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </a>
-          <button class="btn btn-secondary" title="Edit" onclick="openEdit('${card.id}')">
+          <button class="btn btn-secondary admin-only" title="Edit" onclick="openEdit('${card.id}')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
         </div>
@@ -764,13 +1020,41 @@ document.getElementById('modalOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('modalOverlay')) closeModal();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeModal(); document.getElementById('confirmOverlay').classList.remove('open'); }
+  if (e.key === 'Escape') { closeModal(); document.getElementById('confirmOverlay').classList.remove('open'); closeAuthModal(); }
 });
 
 // ─────────────────────────────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────────────────────────────
+checkSession();
 loadCards();
 </script>
+
+<!-- AUTH MODAL -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <div class="auth-header">
+      <div class="auth-icon">🔐</div>
+      <h3>Admin Login</h3>
+      <p>Sign in to add, edit, or delete cards</p>
+    </div>
+    <div class="auth-body">
+      <div class="auth-error" id="authError"></div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="authEmail" placeholder="your@email.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="authPassword" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="btn-auth" id="authSubmit" onclick="doLogin()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Sign In
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
